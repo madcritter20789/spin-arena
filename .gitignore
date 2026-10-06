@@ -3,3 +3,10 @@ dist/
 .vercel/
 *.log
 qa.html
+disc-launcher/
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+Desktop.ini
