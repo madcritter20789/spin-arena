@@ -13,6 +13,10 @@ if(!params.has('visual'))try {
   const pull=async()=>{ $('stage').focus();key('keydown','Space');await wait(400);key('keyup','Space');await wait(300); };
   check('initialized', $('overlay').hidden);
   check('muted by default',$('sound').getAttribute('aria-pressed')==='false');
+  check('renamed arena',d.querySelector('h1').textContent==='Beyblade Arena.');
+  check('launch button above power label',$('hold-launch').getBoundingClientRect().bottom<=d.querySelector('.power-label').getBoundingClientRect().top);
+  for(const id of ['design-a','design-b'])for(const value of ['strike','guard','glide']){ $(id).value=value;$(id).dispatchEvent(new w.Event('change'));await wait(100); }
+  check('design selection previews without resetting',$('stage').dataset.phase==='setupA'&&$('status').textContent.includes('Glide'));
   check('Three shader compiled',!$('stage').dataset.shaderFallback);
   check('Dither and mesh gradient active',$('paper-background').querySelectorAll('canvas').length===1&&$('paper-surface').querySelectorAll('canvas').length===1);
   check('Paper canvas or tested fallback', params.has('fallback') ? $('paper-rim').dataset.fallback==='true' : $('paper-rim').querySelectorAll('canvas').length===1);
@@ -37,16 +41,20 @@ if(!params.has('visual'))try {
   check('hold button launches',$('mode').disabled);$('reset').click();
   $('mode').value='both';$('mode').dispatchEvent(new w.Event('change'));await pull();
   check('first top stages',$('spin-a').textContent==='STAGED'&&$('dock-label').textContent.includes('TEAL'));
+  check('staged design locked and teal selectable',$('design-a').disabled&&!$('design-b').disabled);
   check('staging guidance and progress',$('mode-hint').textContent.includes('% power')&&$('step-b').getAttribute('aria-current')==='step');
   await pull();for(let i=0;i<60&&!$('round-label').textContent.includes('SPIN REMAINING');i++)await wait(100);
   check('both launch simultaneously',$('mode').disabled&&$('round-label').textContent.includes('SPIN REMAINING'));
+  check('designs locked during battle',$('design-a').disabled&&$('design-b').disabled);
   const before=$('meter-a').getAttribute('aria-valuenow');$('pause').click();await wait(200);check('pause freezes spin',$('meter-a').getAttribute('aria-valuenow')===before);
+  check('disabled ripcord remains opaque above track',w.getComputedStyle($('ripcord')).opacity==='1'&&w.getComputedStyle($('ripcord')).zIndex==='2');
   $('theme').value='retro';$('theme').dispatchEvent(new w.Event('change'));$('top').click();await wait(100);
   check('theme and camera preserve paused round',d.body.dataset.theme==='retro'&&$('pause').getAttribute('aria-pressed')==='true'&&$('meter-a').getAttribute('aria-valuenow')===before);
   $('pause').click();
   const intervals=[];await new Promise(resolve=>{let previous;function tick(t){if(previous)intervals.push(t-previous);previous=t;if(intervals.length<180)w.requestAnimationFrame(tick);else resolve()}w.requestAnimationFrame(tick)});
   intervals.sort((a,b)=>a-b);checks.push(`RAF median ${intervals[90].toFixed(2)} ms; p95 ${intervals[171].toFixed(2)} ms`);
   $('reset').click();await wait(100);check('reset resumes and clears',$('spin-a').textContent==='READY'&&$('hit-label').textContent==='00 CLASHES'&&$('pause').getAttribute('aria-pressed')==='false');
+  check('reset retains selected designs',$('design-a').value==='glide'&&$('design-b').value==='glide'&&!$('design-a').disabled&&!$('design-b').disabled);
   check('no horizontal overflow',d.documentElement.scrollWidth<=w.innerWidth);
   check('44px button targets',[...d.querySelectorAll('button,select')].filter(e=>!e.hidden&&e.getBoundingClientRect().height>0).every(e=>e.getBoundingClientRect().height>=44));
   for(let i=0;i<10;i++)$('reset').click();check('repeated reset keeps bounded canvases',d.querySelectorAll('canvas').length===(params.has('fallback')?3:4));

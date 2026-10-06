@@ -85,6 +85,11 @@ function keyboardUp(event) { if (event.code === 'Space' || (event.code === 'Ente
 on(stage, 'keyup', keyboardUp); on(handle, 'keyup', keyboardUp); on(hold, 'keyup', keyboardUp);
 on(stage, 'focusout', cancelPull); on(handle, 'blur', cancelPull);
 on($('mode'), 'change', reset);
+['design-a', 'design-b'].forEach((id, index) => on($(id), 'change', () => {
+  if (!settingUp() || battle.state.launches[index]) return;
+  cancelPull(); scene.setDesign(index, $(id).value);
+  $('status').textContent = `${index ? 'Teal' : 'Coral'} design changed to ${$(id).selectedOptions[0].textContent}.`;
+}));
 on($('theme'), 'change', () => { theme = $('theme').value; document.body.dataset.theme = theme; scene?.setTheme(theme); rim?.update(energy, battle?.state.paused || false, motion.matches, theme, battle?.state.result?.winner ?? null); });
 ['angled', 'top'].forEach(view => on($(view), 'click', () => { scene?.setView(view, motion.matches); $('angled').ariaPressed = String(view === 'angled'); $('top').ariaPressed = String(view === 'top'); }));
 on($('reset'), 'click', reset); on($('pause'), 'click', () => pause(!battle.state.paused));
@@ -103,6 +108,7 @@ function sync() {
   const state = battle?.state, power = charge(), setup = settingUp();
   handle.disabled = !setup; $('reset').disabled = !ready(); $('pause').disabled = !ready(); $('mode').disabled = !ready() || ['countdown', 'battling'].includes(state?.phase);
   hold.disabled = !setup; $('aim').disabled = !setup || pointer !== null || keyStarted !== null;
+  ['design-a', 'design-b'].forEach((id, index) => { $(id).disabled = !setup || !!state?.launches[index]; });
   $('aim').value = String(Math.round(aim * 180 / Math.PI)); $('aim-value').textContent = `${Math.round(aim * 180 / Math.PI)}°`;
   stage.dataset.phase = state?.phase || 'loading';
   $('pause').ariaPressed = String(state?.paused || false); $('pause').innerHTML = state?.paused ? '<span aria-hidden="true">▷</span> Resume' : '<span aria-hidden="true">Ⅱ</span> Pause';
@@ -168,6 +174,7 @@ function frame(timestamp) {
 async function initialize() {
   try {
     scene = createScene($('scene'), failure); scene.setTheme(theme);
+    scene.setDesign(0, $('design-a').value); scene.setDesign(1, $('design-b').value);
     atmosphere = mountAtmosphere($('paper-background'), $('paper-surface'));
     battle = await createBattle(); battle.reset($('mode').value);
     if (closed) { battle.dispose(); scene.dispose(); return; }

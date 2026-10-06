@@ -55,20 +55,28 @@ export function createScene(canvas, onFailure) {
   };
   const bladeShape = new THREE.Shape(); bladeShape.moveTo(.14, -.1); bladeShape.lineTo(.54, -.08); bladeShape.lineTo(.46, .13); bladeShape.lineTo(.19, .18); bladeShape.closePath();
   const bladeGeometry = new THREE.ExtrudeGeometry(bladeShape, { depth: .095, bevelEnabled: true, bevelSize: .025, bevelThickness: .018, bevelSegments: 1, steps: 1 });
+  const guardShape = new THREE.Shape(); guardShape.moveTo(.17, -.13); guardShape.lineTo(.45, -.17); guardShape.quadraticCurveTo(.56, 0, .45, .17); guardShape.lineTo(.17, .13); guardShape.closePath();
+  const glideShape = new THREE.Shape(); glideShape.moveTo(.12, -.12); glideShape.quadraticCurveTo(.65, -.28, .48, .18); glideShape.quadraticCurveTo(.3, .32, .12, .12); glideShape.closePath();
+  const extrude = shape => new THREE.ExtrudeGeometry(shape, { depth: .095, bevelEnabled: true, bevelSize: .02, bevelThickness: .018, bevelSegments: 2, steps: 1 });
+  const designs = { strike: { blade: bladeGeometry, count: 6, cap: .85 }, guard: { blade: extrude(guardShape), count: 8, cap: 1.25 }, glide: { blade: extrude(glideShape), count: 3, cap: 1 } };
   const tops = ['coral', 'teal'].map((color, index) => {
     const root = new THREE.Group(), shell = new THREE.Group(); root.add(shell); scene.add(root); root.position.x = index ? 3 : -3;
     const tip = mesh(topGeometry.tip, materials.metal, shell, 0, .075, 0); tip.rotation.z = Math.PI;
     mesh(topGeometry.core, materials.trim, shell, 0, .19, 0);
-    mesh(topGeometry.shell, materials[color], shell, 0, .31, 0);
     const ring = mesh(topGeometry.ring, materials.metal, shell, 0, .28, 0); ring.rotation.x = Math.PI / 2;
-    for (let i = 0; i < 6; i++) {
-      const blade = mesh(bladeGeometry, materials[color], shell, 0, .33, 0); blade.rotation.set(-Math.PI / 2, 0, i * Math.PI / 3);
-    }
-    mesh(topGeometry.cap, materials.metal, shell, 0, .45, 0);
-    mesh(topGeometry.center, materials[color], shell, 0, .53, 0);
+    const variants = Object.fromEntries(Object.entries(designs).map(([name, design]) => {
+      const group = new THREE.Group(); shell.add(group); group.visible = name === (index ? 'guard' : 'strike');
+      mesh(topGeometry.shell, materials[color], group, 0, .31, 0);
+      for (let i = 0; i < design.count; i++) {
+        const blade = mesh(design.blade, materials[color], group, 0, .33, 0); blade.rotation.set(-Math.PI / 2, 0, i * Math.PI * 2 / design.count);
+      }
+      const cap = mesh(topGeometry.cap, materials.metal, group, 0, .45, 0); cap.scale.set(design.cap, 1, design.cap);
+      const center = mesh(topGeometry.center, materials[color], group, 0, .53, 0); center.scale.set(design.cap, 1, design.cap);
+      return [name, group];
+    }));
     const ringCap = mesh(new THREE.TorusGeometry(.14, .012, 6, 24), materials.trim, shell, 0, .515, 0); ringCap.rotation.x = Math.PI / 2;
     const contactShadow = mesh(new THREE.CircleGeometry(.55, 32), shadow); contactShadow.rotation.x = -Math.PI / 2; contactShadow.position.set(index ? 3 : -3, .018, 0); contactShadow.castShadow = false;
-    return { root, shell, contactShadow };
+    return { root, shell, contactShadow, variants };
   });
   const aimMaterial = new THREE.MeshBasicMaterial({ color: PALETTES.premium.coral, transparent: true, opacity: .6 });
   const aimGroup = new THREE.Group(); scene.add(aimGroup);
@@ -102,6 +110,8 @@ export function createScene(canvas, onFailure) {
   canvas.addEventListener('webglcontextlost', lost);
   return {
     setTheme,
+    // ponytail: designs share arcade colliders and spin rules; variation is visual.
+    setDesign(index, name) { Object.entries(tops[index].variants).forEach(([key, group]) => { group.visible = key === name; }); },
     setView(value, reduced) { view = value; targetView = value; cameraFrom.copy(camera.position); cameraStarted = .0001; if (reduced) { camera.position.copy(views[value]); camera.lookAt(0, 0, 0); cameraStarted = 0; } },
     aim(event, index) {
       const rect = canvas.getBoundingClientRect(), pointer = new THREE.Vector2((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1);

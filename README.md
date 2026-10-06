@@ -1,4 +1,4 @@
-# Spin Arena
+# Beyblade Arena
 
 [Play](https://madcritter20789.github.io/spin-arena/) · [Source](https://github.com/madcritter20789/spin-arena)
 
@@ -77,6 +77,12 @@ Paper's separate renderers now provide three effects: a static **Dithering** pag
 
 ### Responsive controls and fallback
 
+The public heading is now **Beyblade Arena**. The hold button sits above the launch-power label and ripcord; the disabled ripcord handle stays opaque above the teeth. The existing source repository and live URL keep their `spin-arena` paths.
+
+Choose a design separately for coral and teal before launch: **Strike** has six angular blades and a small center cap, **Guard** has eight broad rounded blades and a larger cap, and **Glide** has three curved wings. These are original cosmetic variations with shared arcade collision/spin rules. Selections preview immediately, persist through Reset/replay and theme changes, and lock when a top is staged or the battle starts. The selector also lets you choose the CPU top’s design. Geometry is cached once and disposed with the scene.
+
+The design update passed real-Rapier assertions, production build, and headless Edge/software-WebGL checks at desktop, 390 px, and 320 px reduced-motion/fallback. Checks cover all three choices for both tops, staged/battle locks, selection retention after Reset, and launch-button placement. Layout checks from 320 px to 1440 px, landscape, and doubled root text showed no horizontal overflow; physical-phone testing is still outstanding.
+
 Desktop keeps launch controls beside the arena; tablets use a two-column launch dock and phones stack controls. A full-width hold button is the primary launch action, with the ripcord as an alternative. Utility controls stay in the document so they cannot cover focused content. Mobile launch scrolls the battle into view and hides inactive setup controls until replay. The direction slider and both launch methods share the same rules and cancellation paths.
 
 The UI refresh uses the UI UX Pro Max and UI UX Designer mobile/user-flow guidance: clearer type hierarchy, live round progress, contextual launch instructions, a filling hold-button power indicator, saved power when preparing teal, and expandable rules/keyboard help. The result explains the finish and offers immediate replay. No additional runtime dependencies were introduced.
@@ -129,7 +135,7 @@ GitHub Pages CI runs the assertion check and build before publication. `vercel.j
 
 ## Submission note
 
-Spin Arena turns a familiar spinning-top battle into a small tactile web toy. The ripcord makes launch power tangible, while Paper presentation shaders and Three.js material effects make the arena responsive and expressive. Shared original geometry, two considered material palettes, and a bounded arcade simulation keep the scope compact. The source and live build are reproducible without a backend. The suggested six-hour budget is a target, not a claim of measured completion time; the assignment's 72-hour start time was unspecified.
+Beyblade Arena turns a familiar spinning-top battle into a small tactile web toy. The ripcord makes launch power tangible, while Paper presentation shaders and Three.js material effects make the arena responsive and expressive. Shared original geometry, two considered material palettes, and a bounded arcade simulation keep the scope compact. The source and live build are reproducible without a backend. The suggested six-hour budget is a target, not a claim of measured completion time; the assignment's 72-hour start time was unspecified.
 
 ## Next explorations
 
@@ -139,4 +145,4 @@ Experimental realistic physics belongs on a separate branch, starting with one t
 
 ## Licenses
 
-Paper Shaders license and attribution notices are preserved in `public/PAPER-SHADERS-LICENSE.txt` and `public/PAPER-SHADERS-NOTICE.txt`. Three.js and Rapier retain their MIT/Apache-2.0 dependency notices in their installed packages. Original designs use the public name Spin Arena and no branded assets.
+Paper Shaders license and attribution notices are preserved in `public/PAPER-SHADERS-LICENSE.txt` and `public/PAPER-SHADERS-NOTICE.txt`. Three.js and Rapier retain their MIT/Apache-2.0 dependency notices in their installed packages. Original designs use the public name Beyblade Arena and no branded assets.
