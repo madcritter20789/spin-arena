@@ -6,21 +6,26 @@ export function createScene(canvas, onFailure) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setClearColor(0x000000, 0);
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.25;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(38, 1, .1, 80);
-  const hemisphere = new THREE.HemisphereLight('#fff8e8', '#707c71', 2.8); scene.add(hemisphere);
-  const light = new THREE.DirectionalLight('#fff4de', 4.2); light.position.set(-4, 9, 5); light.castShadow = true;
+  const hemisphere = new THREE.HemisphereLight('#fff8e8', '#707c71', 1.15); scene.add(hemisphere);
+  const light = new THREE.DirectionalLight('#fff4de', 2.8); light.position.set(-4, 9, 5); light.castShadow = true;
   light.shadow.mapSize.set(1024, 1024); light.shadow.camera.left = -8; light.shadow.camera.right = 8; light.shadow.camera.top = 8; light.shadow.camera.bottom = -8; light.shadow.normalBias = .025; scene.add(light);
+  const toonRamp = new THREE.DataTexture(new Uint8Array([48,48,48,255, 135,135,135,255, 255,255,255,255]), 3, 1, THREE.RGBAFormat);
+  toonRamp.minFilter = toonRamp.magFilter = THREE.NearestFilter; toonRamp.needsUpdate = true;
   const materials = {
-    shell: new THREE.MeshStandardMaterial({ color: PALETTES.premium.shell, roughness: .45 }),
-    floor: new THREE.MeshStandardMaterial({ color: PALETTES.premium.floor, roughness: .85 }),
+    shell: new THREE.MeshPhysicalMaterial({ color: PALETTES.premium.shell, roughness: .3, clearcoat: 1, clearcoatRoughness: .16 }),
+    floor: new THREE.MeshPhysicalMaterial({ color: PALETTES.premium.floor, roughness: .42, clearcoat: .65, clearcoatRoughness: .25 }),
     trim: new THREE.MeshStandardMaterial({ color: PALETTES.premium.trim, roughness: .6 }),
     metal: new THREE.MeshStandardMaterial({ color: PALETTES.premium.metal, roughness: .29, metalness: .45 }),
-    coral: new THREE.MeshStandardMaterial({ color: PALETTES.premium.coral, roughness: .35 }),
-    teal: new THREE.MeshStandardMaterial({ color: PALETTES.premium.teal, roughness: .35 }),
+    coral: new THREE.MeshToonMaterial({ color: PALETTES.premium.coral, gradientMap: toonRamp }),
+    teal: new THREE.MeshToonMaterial({ color: PALETTES.premium.teal, gradientMap: toonRamp }),
   };
+  const outlines = new Map(), outlineMaterial = new THREE.LineBasicMaterial({ color: '#293f37', transparent: true, opacity: .55 });
   const mesh = (geometry, material, parent = scene, x = 0, y = 0, z = 0) => {
-    const object = new THREE.Mesh(geometry, material); object.position.set(x, y, z); object.castShadow = true; object.receiveShadow = true; parent.add(object); return object;
+    const object = new THREE.Mesh(geometry, material); object.position.set(x, y, z); object.castShadow = true; object.receiveShadow = true; parent.add(object);
+    if (material.isMeshToonMaterial) { if (!outlines.has(geometry)) outlines.set(geometry, new THREE.EdgesGeometry(geometry, 35)); object.add(new THREE.LineSegments(outlines.get(geometry), outlineMaterial)); }
+    return object;
   };
   mesh(new THREE.CylinderGeometry(5.65, 5.5, .32, 96), materials.shell, scene, 0, -.22, 0);
   mesh(new THREE.CylinderGeometry(5.13, 5.13, .07, 96), materials.floor, scene, 0, -.025, 0);
@@ -73,7 +78,7 @@ export function createScene(canvas, onFailure) {
   const particleGeometry = new THREE.SphereGeometry(.03, 6, 4), particleMaterial = new THREE.MeshBasicMaterial({ color: '#e7ab63' });
   for (let i = 0; i < 32; i++) { const object = mesh(particleGeometry, particleMaterial); object.visible = false; object.castShadow = false; particles.push({ object, age: 1, velocity: new THREE.Vector3() }); }
   let theme = 'premium', targetView = 'angled', view = 'angled', cameraStarted = 0, cameraFrom = new THREE.Vector3(), failure = false;
-  const views = { angled: new THREE.Vector3(8.5, 12, 13), top: new THREE.Vector3(0, 18, .001) };
+  const views = { angled: new THREE.Vector3(4, 12, 13), top: new THREE.Vector3(0, 18, .001) };
   camera.position.copy(views.angled); camera.lookAt(0, 0, 0);
   renderer.debug.onShaderError = () => {
     if (failure) return; failure = true;
@@ -84,13 +89,13 @@ export function createScene(canvas, onFailure) {
     theme = value; const palette = PALETTES[value];
     Object.entries(materials).forEach(([key, material]) => material.color.set(palette[key]));
     materials.metal.metalness = value === 'retro' ? .1 : .45;
-    materials.shell.roughness = value === 'retro' ? .65 : .45;
+    materials.shell.roughness = value === 'retro' ? .4 : .3;
     light.color.set(palette.light); floorMaterial.uniforms.uColorA.value.set(palette.coral); floorMaterial.uniforms.uColorB.value.set(palette.teal);
   }
   function resize() {
     const rect = canvas.getBoundingClientRect(); if (!rect.width || !rect.height) return;
     const dpr = Math.min(devicePixelRatio || 1, 1.5, Math.sqrt(1500000 / (rect.width * rect.height)));
-    renderer.setPixelRatio(dpr); renderer.setSize(rect.width, rect.height, false); camera.aspect = rect.width / rect.height; camera.zoom = Math.min(1.35, camera.aspect * 1.1); camera.updateProjectionMatrix();
+    renderer.setPixelRatio(dpr); renderer.setSize(rect.width, rect.height, false); camera.aspect = rect.width / rect.height; camera.zoom = Math.min(1.07, camera.aspect * .94); camera.updateProjectionMatrix();
   }
   const observer = new ResizeObserver(resize); observer.observe(canvas); resize();
   const lost = event => { event.preventDefault(); onFailure('The 3D connection was interrupted. Retry to restore the arena.', true); };
@@ -142,7 +147,7 @@ export function createScene(canvas, onFailure) {
       observer.disconnect(); canvas.removeEventListener('webglcontextlost', lost);
       const geometries = new Set(), materialSet = new Set([floorMaterial]);
       scene.traverse(object => { if (object.geometry) geometries.add(object.geometry); if (object.material) materialSet.add(object.material); });
-      geometries.forEach(geometry => geometry.dispose()); materialSet.forEach(material => material.dispose()); renderer.dispose();
+      geometries.forEach(geometry => geometry.dispose()); materialSet.forEach(material => material.dispose()); toonRamp.dispose(); renderer.dispose();
     },
   };
 }

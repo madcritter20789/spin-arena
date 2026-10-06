@@ -1,10 +1,44 @@
 import * as THREE from 'three';
-import { ShaderMount, pulsingBorderFragmentShader, getShaderColorFromString as rgba, getShaderNoiseTexture } from '@paper-design/shaders';
+import { ShaderMount, pulsingBorderFragmentShader, ditheringFragmentShader, meshGradientFragmentShader, DitheringShapes, DitheringTypes, getShaderColorFromString as rgba, getShaderNoiseTexture } from '@paper-design/shaders';
 
 export const PALETTES = {
-  premium: { background: '#f3f0e9', floor: '#e4ded0', shell: '#efe9dc', trim: '#384d48', metal: '#a4ada6', coral: '#db6a52', teal: '#347d78', light: '#fff4de' },
-  retro: { background: '#f6efd9', floor: '#ead8b0', shell: '#f6dfaa', trim: '#63846d', metal: '#d0bc8d', coral: '#ec7950', teal: '#438a70', light: '#ffe1ab' },
+  premium: { background: '#f3f0e9', floor: '#d8e5d0', shell: '#f4ebd8', trim: '#253f3a', metal: '#9eada8', coral: '#f06b4f', teal: '#168d86', light: '#fff4de' },
+  retro: { background: '#f6efd9', floor: '#f2d991', shell: '#ffdc8b', trim: '#506f58', metal: '#c8b785', coral: '#f2603d', teal: '#209d77', light: '#ffe1ab' },
 };
+
+// Use Paper's own pipeline for fullscreen effects; geometry shading stays in Three.
+export function mountAtmosphere(background, surface) {
+  const sizing = { u_fit: 2, u_scale: 1.2, u_rotation: 0, u_originX: .5, u_originY: .5, u_offsetX: 0, u_offsetY: 0, u_worldWidth: 0, u_worldHeight: 0 };
+  const layers = [];
+  function mount(element, shader, uniforms, pixels) {
+    let instance;
+    const lost = event => { event.preventDefault(); instance?.dispose(); instance = null; element.replaceChildren(); element.dataset.fallback = 'true'; };
+    try {
+      instance = new ShaderMount(element, shader, { ...sizing, ...uniforms }, { alpha: true }, 0, 0, .5, pixels);
+      instance.canvasElement.addEventListener('webglcontextlost', lost);
+    } catch { element.replaceChildren(); element.dataset.fallback = 'true'; }
+    const layer = { get instance() { return instance; }, dispose() { instance?.canvasElement.removeEventListener('webglcontextlost', lost); instance?.dispose(); instance = null; } };
+    layers.push(layer); return layer;
+  }
+  const dots = mount(background, ditheringFragmentShader, { u_colorBack: rgba('#f3f0e9'), u_colorFront: rgba('#d8dfc9'), u_shape: DitheringShapes.warp, u_type: DitheringTypes['4x4'], u_pxSize: 2.5 }, 300000);
+  const gradient = mount(surface, meshGradientFragmentShader, { u_colors: ['#d9e6d5', '#b0d3c1', '#f6e8cf', '#c6d8d3'].map(rgba), u_colorsCount: 4, u_distortion: .55, u_swirl: .2, u_grainMixer: 0, u_grainOverlay: .045 }, 250000);
+  let previous = '', currentTheme = null;
+  return {
+    update(energy, paused, reduced, theme) {
+      const key = `${energy.toFixed(2)}:${paused}:${reduced}:${theme}`;
+      if (previous === key) return; previous = key;
+      if (currentTheme !== theme) {
+        currentTheme = theme;
+        dots.instance?.setUniforms({ u_colorBack: rgba(PALETTES[theme].background), u_colorFront: rgba(theme === 'retro' ? '#e5d3a6' : '#d8dfc9') });
+        gradient.instance?.setUniforms({ u_colors: (theme === 'retro' ? ['#f5dea6', '#e6b979', '#fbebc7', '#bfceb0'] : ['#d9e6d5', '#b0d3c1', '#f6e8cf', '#c6d8d3']).map(rgba) });
+      }
+      gradient.instance?.setUniforms({ u_distortion: .55 + energy * .1 });
+      // ponytail: static page dither saves a continuous fullscreen pass; animate only the small arena on interaction.
+      gradient.instance?.setSpeed(!paused && !reduced && energy > .02 ? .08 : 0);
+    },
+    dispose() { layers.forEach(layer => layer.dispose()); },
+  };
+}
 
 export function makeFloorShader() {
   return new THREE.ShaderMaterial({

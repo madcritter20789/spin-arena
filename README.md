@@ -2,7 +2,7 @@
 
 [Play](https://madcritter20789.github.io/spin-arena/) · [Source](https://github.com/madcritter20789/spin-arena)
 
-Two original sculpted tops, one stadium, and a tactile ripcord. Aim in the arena, pull right, and release. Play versus the CPU or stage both launches yourself. Coral and teal share the same simulation. Choose Premium Toy or Retro Plastic, angled or top camera, and optional synthesized sound (off initially).
+Two original sculpted tops, one stadium, and a tactile ripcord. Aim in the arena or use the direction slider. Pull right and release, or hold the launch button and release. Play versus the CPU or stage both launches yourself. Coral and teal share the same simulation. Choose Premium Toy or Retro Plastic, angled or top camera, and optional synthesized sound (off initially).
 
 ## Run
 
@@ -24,11 +24,21 @@ Vanilla JavaScript, Three.js 0.186.1, Rapier 0.21.0, Paper Shaders 0.0.81, and V
 
 This is an arcade toy: upright cylinder bodies, separate spin energy, and center/orbit forces. It does not simulate gyroscopic motion. Tuning constants are together in `SETTINGS`. Physics runs at 120 Hz with a 50 ms accumulator cap and interpolated display transforms. Contact starts drain bounded spin energy. Both eliminations are resolved together; rounds end by spin-out, pocket ring-out, or remaining spin at 20 seconds.
 
-The custom Three.js floor shader draws radial markings, charge feedback, top halos, and four bounded collision rings. Paper's separate `PulsingBorder` renderer provides a reactive presentation rim, with decoded noise and complete sizing uniforms. Its updates are limited to 30 Hz, animation stops at rest/pause, and its resolution is capped at 400,000 pixels. Three.js caps DPR at 1.5 and resolution at 1.5 million pixels; particles are pooled at 32. Reduced motion removes decorative wobble, rings, particles, and camera animation. Resource disposal covers renderers, meshes, observers, listeners, audio, and physics.
+The custom Three.js floor shader draws radial markings, charge feedback, top halos, and four bounded collision rings. Tops use `MeshToonMaterial` with a generated three-band nearest-filtered gradient and shared edge outlines. The stadium uses clear-coated `MeshPhysicalMaterial` for molded plastic highlights.
+
+Paper's separate renderers now provide three effects: a static **Dithering** page background (300,000 pixels), a reactive **MeshGradient** arena backdrop (250,000 pixels), and **PulsingBorder** feedback (400,000 pixels). Uniforms and sizing follow the cloned library's presets. The rim uses decoded noise. Updates are limited to 30 Hz; decorative animation stops at rest, pause, and reduced motion. Three.js caps DPR at 1.5 and resolution at 1.5 million pixels; particles are pooled at 32. Reduced motion also removes decorative wobble, rings, particles, and camera animation. Resource disposal covers renderers, gradient textures, meshes, observers, listeners, audio, and physics.
+
+Desktop keeps launch controls beside the arena. Phones use a stacked layout, larger ripcord targets, full-width hold controls, and a fixed safe-area-aware utility bar. Mobile launch scrolls the battle into view and hides inactive setup controls until replay. The direction slider and both launch methods share the same rules and cancellation paths.
 
 Paper failure uses CSS feedback while retaining the floor shader. Custom shader compilation failure is reported and uses basic materials; that fallback does not satisfy the full shader criterion. WebGL/physics initialization failure or 3D context loss displays Retry.
 
 ## Verification — October 6, 2026
+
+The UI/shader update adds a repeatable browser check at `http://127.0.0.1:5174/checks/browser.html` after `npm run dev`. Append `?width=320&reduced&fallback` for the smallest layout, injected reduced motion, and a forced Paper-rim texture failure. These are test-only browser scenarios; the main toy contains no test controls. The harness is not part of the production build.
+
+- Updated desktop check passed: all three Paper shader canvases, custom floor shader, aim slider, hold-button launch/cancellation, both modes, touch-pointer cancellation/outside release, pause, theme/camera preservation, reset, bounded canvas count, hidden-tab pause, and Retry. Updated desktop RAF intervals: median 8.3 ms / p95 8.4 ms over 180 frames on in-app Chromium.
+- Updated 320-pixel iframe viewport with reduced motion and forced rim failure passed the same checks, including overflow and 44-pixel targets. Frame intervals: median 8.3 ms / p95 8.5 ms. This is browser emulation, not a physical-phone measurement.
+- Actual mouse interaction in a 390 × 844 emulated browser viewport verified the larger hold/release button, automatic battle framing, and fixed Pause control. This remains desktop browser input, not physical touch hardware.
 
 - `npm test` passes with the real Rapier WASM module: charge/aim bounds, staged launches, opposing directions, collision reversal, bounded damage, spin-out, ring-out, simultaneous elimination, timeout, pause, reset.
 - Production build passes. Rapier's bundled WASM makes the main bundle approximately 5 MB / 1.85 MB gzip; the build reports a size advisory.

@@ -1,0 +1,56 @@
+<!doctype html><html><head><meta charset="UTF-8"><title>Spin Arena browser checks</title></head><body style="margin:0"><pre id="report">Running browser checks…</pre><iframe id="app" style="border:0;width:100%;height:850px"></iframe><script type="module">
+const frame=document.querySelector('#app'), report=document.querySelector('#report'), params=new URLSearchParams(location.search);
+if(params.has('width'))frame.style.width=params.get('width')+'px';
+let html=await(await fetch('/')).text();
+html=html.replace('<head>','<head><base href="/">');
+html=html.replace(/<script type="module" src="\/src\/main.js[^\"]*"><\/script>/, `<script type="module">${params.has('reduced') ? `const original=window.matchMedia;window.matchMedia=q=>q.includes('prefers-reduced-motion')?{matches:true,addEventListener(){},removeEventListener(){}}:original(q);` : ''}${params.has('fallback') ? `Image.prototype.decode=()=>Promise.reject(new Error('QA texture failure'));` : ''}await import('/src/main.js');</scr`+'ipt>');
+frame.srcdoc=html;
+const wait=ms=>new Promise(r=>setTimeout(r,ms)), checks=[];
+if(!params.has('visual'))try {
+  await wait(1800); const w=frame.contentWindow,d=w.document,$=id=>d.getElementById(id);
+  const check=(name,value)=>{if(!value)throw Error(name);checks.push(name)};
+  const key=(type,code)=>$('stage').dispatchEvent(new w.KeyboardEvent(type,{code,bubbles:true}));
+  const pull=async()=>{ $('stage').focus();key('keydown','Space');await wait(400);key('keyup','Space');await wait(80); };
+  check('initialized', $('overlay').hidden);
+  check('muted by default',$('sound').getAttribute('aria-pressed')==='false');
+  check('Three shader compiled',!$('stage').dataset.shaderFallback);
+  check('Dither and mesh gradient active',$('paper-background').querySelectorAll('canvas').length===1&&$('paper-surface').querySelectorAll('canvas').length===1);
+  check('Paper canvas or tested fallback', params.has('fallback') ? $('paper-rim').dataset.fallback==='true' : $('paper-rim').querySelectorAll('canvas').length===1);
+  $('stage').focus();key('keydown','Space');await wait(100);key('keydown','Escape');key('keyup','Space');await wait(80);
+  check('Escape cancels keyboard launch',$('spin-a').textContent==='READY');
+  key('keydown','Space');await wait(100);w.dispatchEvent(new w.Event('blur'));key('keyup','Space');await wait(80);
+  check('blur cancels launch',$('spin-a').textContent==='READY');
+  const capture=$('ripcord').setPointerCapture;$('ripcord').setPointerCapture=()=>{};
+  const pointer=(type,x)=>$('ripcord').dispatchEvent(new w.PointerEvent(type,{pointerId:7,pointerType:'touch',button:0,clientX:x,bubbles:true}));
+  pointer('pointerdown',10);pointer('pointermove',130);pointer('pointercancel',130);pointer('pointerup',130);await wait(60);
+  check('touch cancellation never launches',$('spin-a').textContent==='READY');
+  pointer('pointerdown',10);pointer('pointermove',400);pointer('pointerup',400);await wait(60);
+  check('touch release outside track commits',$('mode').disabled);
+  $('ripcord').setPointerCapture=capture;$('reset').click();
+  $('aim').value='45';$('aim').dispatchEvent(new w.Event('input'));await wait(60);
+  check('aim slider updates direction',$('aim-value').textContent==='45°');
+  const hold=$('hold-launch');hold.setPointerCapture=()=>{};
+  const holdEvent=type=>hold.dispatchEvent(new w.PointerEvent(type,{pointerId:8,pointerType:'touch',button:0,bubbles:true}));
+  holdEvent('pointerdown');await wait(130);holdEvent('pointercancel');holdEvent('pointerup');await wait(60);
+  check('hold button cancellation',$('spin-a').textContent==='READY');
+  holdEvent('pointerdown');await wait(350);holdEvent('pointerup');await wait(80);
+  check('hold button launches',$('mode').disabled);$('reset').click();
+  $('mode').value='both';$('mode').dispatchEvent(new w.Event('change'));await pull();
+  check('first top stages',$('spin-a').textContent==='STAGED'&&$('dock-label').textContent.includes('TEAL'));
+  await pull();await wait(900);check('both launch simultaneously',$('mode').disabled&&$('round-label').textContent.includes('SPIN REMAINING'));
+  const before=$('meter-a').getAttribute('aria-valuenow');$('pause').click();await wait(200);check('pause freezes spin',$('meter-a').getAttribute('aria-valuenow')===before);
+  $('theme').value='retro';$('theme').dispatchEvent(new w.Event('change'));$('top').click();await wait(100);
+  check('theme and camera preserve paused round',d.body.dataset.theme==='retro'&&$('pause').getAttribute('aria-pressed')==='true'&&$('meter-a').getAttribute('aria-valuenow')===before);
+  $('pause').click();
+  const intervals=[];await new Promise(resolve=>{let previous;function tick(t){if(previous)intervals.push(t-previous);previous=t;if(intervals.length<180)w.requestAnimationFrame(tick);else resolve()}w.requestAnimationFrame(tick)});
+  intervals.sort((a,b)=>a-b);checks.push(`RAF median ${intervals[90].toFixed(2)} ms; p95 ${intervals[171].toFixed(2)} ms`);
+  $('reset').click();await wait(100);check('reset resumes and clears',$('spin-a').textContent==='READY'&&$('hit-label').textContent==='00 CLASHES'&&$('pause').getAttribute('aria-pressed')==='false');
+  check('no horizontal overflow',d.documentElement.scrollWidth<=w.innerWidth);
+  check('44px button targets',[...d.querySelectorAll('button,select')].filter(e=>!e.hidden&&e.getBoundingClientRect().height>0).every(e=>e.getBoundingClientRect().height>=44));
+  for(let i=0;i<10;i++)$('reset').click();check('repeated reset keeps bounded canvases',d.querySelectorAll('canvas').length===(params.has('fallback')?3:4));
+  Object.defineProperty(d,'hidden',{configurable:true,value:true});d.dispatchEvent(new w.Event('visibilitychange'));await wait(70);check('hidden tab pauses',$('pause').getAttribute('aria-pressed')==='true');
+  $('scene').dispatchEvent(new w.Event('webglcontextlost',{cancelable:true}));await wait(80);
+  check('context loss shows Retry',$('overlay-action').dataset.action==='retry');
+  report.textContent='PASS\n'+checks.join('\n');
+}catch(error){report.textContent='FAIL '+error.message+'\n'+checks.join('\n')}
+</script></body></html>
