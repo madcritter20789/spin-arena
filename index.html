@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#f3f0e9" />
+  <meta name="description" content="Two tiny tops. One beautiful clash. Pull the ripcord and play a 3D spinning-top battle." />
+  <title>Spin Arena — pull, spin, collide.</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 2L41 16L57 17L53 32L62 45L45 50L32 62L19 50L2 45L11 32L7 17L23 16Z' fill='%23df6a52'/%3E%3Ccircle cx='32' cy='32' r='13' fill='%23f3f0e9'/%3E%3C/svg%3E" />
+</head>
+<body data-theme="premium">
+  <main>
+    <header class="masthead"><a class="wordmark" href="./"><span class="brand-symbol" aria-hidden="true">✳</span> SMALL HOURS <span class="lab">/ PLAY LAB</span></a><span class="edition">EXPERIMENT № 002</span></header>
+    <section class="intro"><div><p class="eyebrow"><span></span> A LITTLE MOMENTUM. A LITTLE MAYHEM.</p><h1>Spin Arena<span>.</span></h1><p class="subtitle">Two tiny tops. One beautiful clash.</p></div><div class="theme-picker"><label for="theme">THE LOOK</label><select id="theme"><option value="premium">Premium Toy</option><option value="retro">Retro Plastic</option></select></div></section>
+    <section class="machine" aria-label="Spinning-top battle toy">
+      <div class="machine-toolbar"><div class="mode-picker"><label for="mode" class="sr-only">Battle mode</label><select id="mode"><option value="cpu">Versus CPU</option><option value="both">Launch both</option></select><span class="round-label" id="round-label">READY FOR A LITTLE RIVALRY</span></div><div class="view-switch" role="group" aria-label="Camera view"><button id="angled" aria-pressed="true">Angled</button><button id="top" aria-pressed="false">Top</button></div></div>
+      <div class="stage" id="stage" tabindex="0" role="group" aria-label="3D spinning-top stadium" aria-describedby="instructions keyboard-help">
+        <div class="paper-rim" id="paper-rim" aria-hidden="true"></div><canvas id="scene" aria-hidden="true"></canvas>
+        <div class="scoreboard" aria-label="Remaining spin"><div class="top-card coral"><div><span class="top-id">01 / CORAL</span><span class="spin-value" id="spin-a">READY</span></div><div class="spin-meter" id="meter-a" role="meter" aria-label="Coral remaining spin" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i></div></div><span class="versus">×</span><div class="top-card teal"><div><span class="top-id" id="top-b-label">02 / TEAL · CPU</span><span class="spin-value" id="spin-b">READY</span></div><div class="spin-meter" id="meter-b" role="meter" aria-label="Teal remaining spin" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i></i></div></div></div>
+        <div class="stage-caption"><span id="phase-label">AIM CORAL. PULL THE RIPCORD.</span><span id="hit-label">00 CLASHES</span></div>
+        <div class="overlay" id="overlay"><div><p class="overlay-kicker" id="overlay-kicker">WAKING UP THE ARENA</p><h2 id="overlay-title">A moment to gather momentum.</h2><p id="overlay-note">Loading the 3D scene and physics.</p><button id="overlay-action" hidden>Try again ↗</button></div></div>
+      </div>
+      <div class="launch-dock"><div class="launch-copy"><span class="dock-label" id="dock-label">YOUR LAUNCH / CORAL</span><p id="instructions">Aim in the arena. Pull right. Let it rip.</p><span class="pull-value" id="pull-value">0% POWER</span></div><div class="ripcord-area"><div class="ripcord-track" id="ripcord-track"><span class="cord-teeth" aria-hidden="true"></span><span class="pull-hint" aria-hidden="true">PULL →</span><button id="ripcord" class="ripcord-handle" aria-label="Pull ripcord to launch coral" aria-describedby="instructions"><span aria-hidden="true">↗</span></button></div><div class="charge-meter" id="charge-meter" role="meter" aria-label="Launch power" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div></div></div>
+    </section>
+    <div class="bottom-row"><p id="keyboard-help"><kbd>←</kbd> <kbd>→</kbd> aim <span>/</span> hold <kbd>space</kbd> to pull <span>/</span> release to launch</p><div class="utility-controls"><button id="reset" disabled><span aria-hidden="true">↺</span> Reset</button><button id="pause" aria-pressed="false" disabled><span aria-hidden="true">Ⅱ</span> Pause</button><button id="sound" aria-pressed="false"><span aria-hidden="true">♪</span> Sound off</button></div></div>
+    <footer><p>Original tops. Happy collisions.</p><p>Made for the joy of it. <span>✳</span></p></footer>
+    <p class="sr-only" id="status" role="status" aria-live="polite"></p>
+  </main>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+import assert from 'node:assert/strict';
+import { createBattle, clamp, boundAim, contactDamage, resolveRound } from './src/battle.js';
+
+assert.equal(clamp(-1), 0); assert.equal(clamp(2), 1);
+assert.equal(boundAim(10), 65 * Math.PI / 180);
+assert.ok(contactDamage(100) <= .135);
+const tops = [{ x: 0, z: 0, energy: .8 }, { x: 1, z: 0, energy: .6 }];
+assert.equal(resolveRound(tops, 20).winner, 0);
+assert.equal(resolveRound([{ ...tops[0], energy: .61 }, tops[1]], 20).winner, null);
+assert.equal(resolveRound([{ ...tops[0], energy: .07 }, tops[1]], 1).reason, 'Spin-out');
+assert.equal(resolveRound([{ ...tops[0], z: 6 }, tops[1]], 1).reason, 'Ring-out');
+assert.equal(resolveRound(tops.map(t => ({ ...t, energy: .07 })), 1).winner, null);
+const battle = await createBattle();
+try {
+  battle.reset('both');
+  assert.ok(battle.configureLaunch(0, 3));
+  assert.equal(battle.state.phase, 'setupB');
+  assert.equal(battle.state.launches[0].power, 1);
+  assert.equal(battle.start(), false);
+  battle.configureLaunch(0, 1); battle.start();
+  assert.ok(battle.state.tops[0].body.linvel().x > 0);
+  assert.ok(battle.state.tops[1].body.linvel().x < 0);
+  battle.setPaused(true); battle.step(); assert.equal(battle.state.time, 0);
+  battle.setPaused(false);
+  for (let i = 0; i < 120 && !battle.state.hits; i++) battle.step();
+  assert.ok(battle.state.hits > 0, 'real Rapier collision starts must damage spin');
+  assert.ok(battle.state.tops[0].body.linvel().x < 0, 'impact reverses direction');
+  assert.ok(battle.state.tops.every(t => t.energy > .75 && t.energy < 1));
+  battle.state.tops[0].energy = .07; battle.step();
+  assert.equal(battle.state.result.reason, 'Spin-out');
+  battle.reset('cpu'); battle.configureLaunch(0, 1); battle.start();
+  battle.state.tops[0].body.setTranslation({ x: 0, y: .28, z: 6 }, true); battle.step();
+  assert.equal(battle.state.result.reason, 'Ring-out');
+  battle.reset(); battle.configureLaunch(0, 1); battle.start();
+  battle.state.tops.forEach(t => { t.energy = .07; }); battle.step();
+  assert.equal(battle.state.result.winner, null);
+  battle.reset(); battle.configureLaunch(0, 1); battle.start();
+  battle.state.time = 20; battle.state.tops[0].energy = .8; battle.state.tops[1].energy = .6; battle.step();
+  assert.equal(battle.state.result.reason, 'Spin remaining');
+  assert.equal(battle.state.result.winner, 0);
+  battle.reset(); assert.equal(battle.state.phase, 'setupA');
+  assert.equal(battle.state.hits, 0); assert.equal(battle.state.paused, false);
+  assert.equal(battle.state.tops[0].x, -3);
+  console.log('PASS: real Rapier collision, launch bounds, staging, finish rules, pause and reset');
+} finally { battle.dispose(); }
