@@ -77,7 +77,11 @@ Paper's separate renderers now provide three effects: a static **Dithering** pag
 
 ### Responsive controls and fallback
 
-Desktop keeps launch controls beside the arena. Phones use a stacked layout, larger ripcord targets, full-width hold controls, and a fixed safe-area-aware utility bar. Mobile launch scrolls the battle into view and hides inactive setup controls until replay. The direction slider and both launch methods share the same rules and cancellation paths.
+Desktop keeps launch controls beside the arena; tablets use a two-column launch dock and phones stack controls. A full-width hold button is the primary launch action, with the ripcord as an alternative. Utility controls stay in the document so they cannot cover focused content. Mobile launch scrolls the battle into view and hides inactive setup controls until replay. The direction slider and both launch methods share the same rules and cancellation paths.
+
+The UI refresh uses the UI UX Pro Max and UI UX Designer mobile/user-flow guidance: clearer type hierarchy, live round progress, contextual launch instructions, a filling hold-button power indicator, saved power when preparing teal, and expandable rules/keyboard help. The result explains the finish and offers immediate replay. No additional runtime dependencies were introduced.
+
+Round flows: **CPU:** aim coral → hold/pull → release → simultaneous battle → result → replay. **Launch both:** aim/charge coral → stage coral → aim/charge teal → stage teal → simultaneous battle → result → replay. Escape or interrupted input cancels a charge; Reset returns either flow to coral setup.
 
 Paper failure uses CSS feedback while retaining the floor shader. Custom shader compilation failure is reported and uses basic materials; that fallback does not satisfy the full shader criterion. WebGL/physics initialization failure or 3D context loss displays Retry.
 
@@ -116,6 +120,12 @@ The UI/shader update adds a repeatable browser check at `http://127.0.0.1:5174/c
 - Physical phones, Safari, audible sound balance, exhaustive GPU-resource counts, and hardware-specific shader compilation failures remain unverified. Touch checks used synthetic PointerEvents; actual touch hardware remains to be tested.
 
 GitHub Pages CI runs the assertion check and build before publication. `vercel.json` retains the static deployment configuration; GitHub Pages is used because the previous Vercel team deployment reached its fair-use limit.
+
+### UI refresh verification — October 6, 2026
+
+- Real Rapier Node assertions and the Vite production build pass. Browser checks now include the active preparation step and coral’s saved-power guidance.
+- Headless Microsoft Edge with software WebGL passed mouse/keyboard/synthetic touch interaction checks, both modes, pause, theme/camera preservation, repeated reset, context-loss handling, and reduced-motion/Paper fallback. Layouts at 320×740, 390×844, 768×1024, 1024×768, 1440×1000, and 844×390 had no horizontal overflow and controls of at least 44 px. A 390 px viewport with 200% root text also had no overflow.
+- Software-rendered timing is substantially slower than the earlier hardware browser run: desktop median 75.0 ms / p95 191.7 ms; 390 px median 33.4 ms / p95 75.0 ms; 320 px reduced-motion/fallback median 25.0 ms / p95 33.5 ms (180 RAF intervals each). These runs validate behavior, not desktop/mobile hardware performance. Physical-phone touch, Safari, and assistive-technology testing remain outstanding.
 
 ## Submission note
 

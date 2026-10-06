@@ -37,13 +37,15 @@ function pause(value) {
 }
 function showResult() {
   const result = battle.state.result, winner = result.winner === null ? 'A perfect tie.' : result.winner === 0 ? 'Coral takes the arena.' : 'Teal takes the arena.';
-  overlay(result.reason.toUpperCase(), winner, `${battle.state.hits} ${battle.state.hits === 1 ? 'clash' : 'clashes'}. There’s always one more round.`, 'Battle again ↗', 'again');
+  const explanation = { 'Spin-out': 'A top ran out of spin.', 'Ring-out': 'A top left through an exit pocket.', 'Spin remaining': 'Time’s up. Remaining spin decides the round.' }[result.reason] || 'Both tops reached the finish together.';
+  overlay(result.reason.toUpperCase(), winner, `${explanation} ${battle.state.hits} ${battle.state.hits === 1 ? 'clash' : 'clashes'}.`, 'Battle again ↗', 'again');
+  if ([document.body, stage, handle, hold].includes(document.activeElement)) $('overlay-action').focus({ preventScroll: true });
   $('status').textContent = `${winner} ${result.reason}. ${battle.state.hits} ${battle.state.hits === 1 ? 'clash' : 'clashes'}.`;
 }
 function commitPull() {
   if (!settingUp()) { cancelPull(); return; }
   const power = charge(); cancelPull();
-  if (power < .08) { sync(); return; }
+  if (power < .08) { $('status').textContent = 'Launch cancelled. Hold a little longer or pull the ripcord farther.'; sync(); return; }
   audio.gesture(); audio.event('pull');
   const first = battle.state.phase === 'setupA';
   battle.configureLaunch(aim, power); aim = 0; energy = power;
@@ -107,7 +109,10 @@ function sync() {
   handle.style.transform = `translateX(${power * 140}px)`;
   $('charge-meter').firstElementChild.style.transform = `scaleX(${power})`; $('charge-meter').setAttribute('aria-valuenow', String(Math.round(power * 100))); $('pull-value').textContent = `${Math.round(power * 100)}%`;
   hold.classList.toggle('charging', keyStarted !== null);
+  hold.style.setProperty('--charge', power.toFixed(2));
   const teal = state?.phase === 'setupB';
+  document.querySelector('.launch-dock').dataset.top = teal ? 'teal' : 'coral';
+  document.querySelector('.play-steps').style.setProperty('--active', teal ? 'var(--teal)' : 'var(--coral)');
   $('dock-label').textContent = teal ? 'SECOND LAUNCH / TEAL' : 'YOUR LAUNCH / CORAL';
   handle.style.background = teal ? 'var(--teal)' : 'var(--coral)';
   hold.style.setProperty('--launch-color', teal ? 'var(--teal)' : 'var(--coral)');
@@ -115,16 +120,25 @@ function sync() {
   handle.ariaLabel = `Pull ripcord to ${state?.mode === 'both' ? 'stage' : 'launch'} ${teal ? 'teal' : 'coral'}`;
   $('top-b-label').textContent = `02 / TEAL${state?.mode === 'cpu' ? ' · CPU' : ''}`;
   if (state) {
-    const labels = { setupA: 'AIM CORAL. CHOOSE YOUR POWER.', setupB: 'CORAL IS STAGED. YOUR TURN, TEAL.', countdown: 'READY… LET IT RIP.', battling: 'A LITTLE MOMENTUM. A LITTLE MAYHEM.', finished: state.result?.reason.toUpperCase() };
+    const labels = { setupA: 'Aim coral to begin', setupB: 'Coral staged · aim teal', countdown: 'Ready… let it rip!', battling: 'Last top spinning wins', finished: state.result?.reason };
     $('phase-label').textContent = state.paused ? 'PAUSED. MOMENTUM SAVED.' : labels[state.phase];
-    $('round-label').textContent = state.phase === 'battling' ? `${Math.max(0, 20 - state.time).toFixed(1)}s / SPIN REMAINING` : state.phase === 'setupB' ? 'CORAL STAGED / TEAL UP NEXT' : 'READY FOR A LITTLE RIVALRY';
+    $('round-label').textContent = state.phase === 'battling' ? `${Math.max(0, 20 - state.time).toFixed(1)}s / SPIN REMAINING` : state.paused ? 'Round paused' : state.phase === 'setupB' ? 'Coral staged · teal next' : state.phase === 'finished' ? 'Round complete' : 'Ready to launch';
+    const activeStep = state.phase === 'setupA' ? 0 : state.phase === 'setupB' ? 1 : 2;
+    ['step-a', 'step-b', 'step-battle'].forEach((id, index) => {
+      $(id).classList.toggle('complete', index < activeStep);
+      if (index === activeStep) $(id).setAttribute('aria-current', 'step'); else $(id).removeAttribute('aria-current');
+    });
+    $('step-b').lastElementChild.textContent = state.mode === 'cpu' ? 'CPU is ready' : 'Prepare teal';
+    $('dock-title').textContent = state.paused ? 'Take your time.' : state.phase === 'battling' ? 'Let them battle.' : state.phase === 'countdown' ? 'Here we go!' : state.phase === 'finished' ? 'One more round?' : teal ? 'Teal, you’re up.' : 'Make your move.';
+    $('mode-hint').textContent = state.phase === 'finished' ? 'Use Battle again in the arena to replay.' : state.phase === 'battling' ? 'Spin-out or ring-out ends the round.' : state.mode === 'cpu' ? 'The CPU launches with you.' : teal ? `Coral is staged at ${Math.round(state.launches[0].power * 100)}% power.` : 'Stage coral first, then prepare teal.';
+    $('power-hint').textContent = power >= .99 ? 'Full power! Release when ready.' : power >= .08 ? `Release to ${state.mode === 'both' ? 'stage' : 'launch'} at ${Math.round(power * 100)}% power.` : 'Hold for power. Release to launch.';
     $('hit-label').textContent = `${String(state.hits).padStart(2, '0')} CLASHES`;
     state.tops.forEach((top, index) => {
       const letter = index ? 'b' : 'a', percent = Math.round(top.energy * 100), staged = !!state.launches[index] && ['setupA', 'setupB', 'countdown'].includes(state.phase);
       $('spin-' + letter).textContent = ['setupA', 'setupB'].includes(state.phase) ? staged ? 'STAGED' : 'READY' : `${percent}%`;
       $('meter-' + letter).setAttribute('aria-valuenow', String(percent)); $('meter-' + letter).firstElementChild.style.transform = `scaleX(${top.energy})`;
     });
-    $('instructions').textContent = state.paused ? 'Momentum saved. Resume when you’re ready.' : state.phase === 'battling' ? 'Watch the clash. Last top spinning wins.' : state.phase === 'countdown' ? 'Both tops are ready. Let it rip!' : state.phase === 'finished' ? 'Ready for a rematch? Battle again.' : teal ? 'Coral is ready. Set teal’s aim and power.' : 'Tap the arena or slide to aim. Pull or hold, then release.';
+    $('instructions').textContent = state.paused ? 'Momentum saved. Resume when you’re ready.' : state.phase === 'battling' ? 'Watch the clash. Last top spinning wins.' : state.phase === 'countdown' ? 'Both tops are ready. Let it rip!' : state.phase === 'finished' ? 'Ready for a rematch? Battle again.' : teal ? 'Set teal’s direction, then hold to stage.' : 'Tap the arena or use the slider to aim.';
   }
   stage.style.setProperty('--energy', Math.max(power, energy).toFixed(2));
 }
