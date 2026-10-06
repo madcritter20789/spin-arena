@@ -38,7 +38,7 @@ function pause(value) {
 function showResult() {
   const result = battle.state.result, winner = result.winner === null ? 'A perfect tie.' : result.winner === 0 ? 'Coral takes the arena.' : 'Teal takes the arena.';
   overlay(result.reason.toUpperCase(), winner, `${battle.state.hits} ${battle.state.hits === 1 ? 'clash' : 'clashes'}. There’s always one more round.`, 'Battle again ↗', 'again');
-  $('status').textContent = `${winner} ${result.reason}. ${battle.state.hits} clashes.`;
+  $('status').textContent = `${winner} ${result.reason}. ${battle.state.hits} ${battle.state.hits === 1 ? 'clash' : 'clashes'}.`;
 }
 function commitPull() {
   if (!settingUp()) { cancelPull(); return; }
