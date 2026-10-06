@@ -4,6 +4,17 @@ dist/
 *.log
 qa.html
 disc-launcher/
+**/.git/
+/*/**/.gitignore
+/*/**/.gitattributes
+/*/**/.gitmodules
+.vite/
+.cache/
+.npm/
+.pnpm-store/
+.yarn/cache/
+coverage/
+*.tsbuildinfo
 .env
 .env.*
 !.env.example
