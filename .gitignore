@@ -4,6 +4,13 @@ dist/
 *.log
 qa.html
 disc-launcher/
+**/.agents/skills/
+**/.codex/skills/
+**/.claude/skills/ui-ux-pro-max/
+**/.shared/ui-ux-pro-max/
+**/ui-ux-pro-max-skill/
+**/__pycache__/
+*.py[cod]
 **/.git/
 /*/**/.gitignore
 /*/**/.gitattributes
